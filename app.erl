@@ -4,7 +4,7 @@
 -include_lib("kernel/include/file.hrl").
 
 -record(state, {port, asock, request_count = 0}).
--record(req, {method, path, bin_path, headers}).
+-record(req, {method, path, bin_path, content_type, content_length, headers}).
 -define(_if(Predicate, TrueCase, FalseCase), if Predicate -> TrueCase; true -> FalseCase end).
 
 
@@ -25,7 +25,10 @@ receive_req(Req) ->
           Headers = Req#req.headers,
           receive_req(Req#req{headers = [{Name, Value} | Headers]});
       {http, Socket, http_eoh} ->
-          Resp = handle_action(Req#req.method, Req#req.bin_path, Req),
+          inet:setopts(Socket, [{active, false}]),
+          Req1 = prepare_req(Req),
+          Body = consume_body(Socket, Req1#req.content_type, Req1),
+          Resp = handle_action(Req#req.method, Req#req.bin_path, Req1),
           send_headers(Socket, Resp),
           send_responce(Socket, Resp),
           ok = gen_tcp:close(Socket);
@@ -35,11 +38,14 @@ receive_req(Req) ->
           io:format("Got unexpected message ~p ~n", [_Any])
     end.
 
-handle_action(_, <<"/public/", Path/binary>>, Req) ->
+handle_action('GET', <<"/public/", Path/binary>>, Req) ->
     static_resp(Path);
 
 handle_action('GET', Path, Req) ->
-    dinamic_resp(<<"Some">>).
+    dinamic_resp(<<"Some">>);
+
+handle_action('POST', Path, Req) ->
+    dinamic_resp(<<"'Some'">>).
 
 dinamic_resp(Data) ->
     Length = byte_size(Data),
@@ -65,7 +71,30 @@ send_headers(Socket, {_, Length, _}) ->
    gen_tcp:send(Socket, Headers),
    gen_tcp:send(Socket, "\r\n").
 
+consume_body(Socket, <<"multipart/form-data; boundary=", Boundary/binary>>, Length) ->
+    io:format("Debug in multipart ~p ~n", [Boundary]),
+    ok;
+
+consume_body(Socket, Type, Length) ->
+    ok.
+
 resp_headers(Headers) ->
     lists:append([<<"HTTP/1.1 200 OK\r\n">>, <<"Content-Type: text/html\r\n">>], Headers).
 
+prepare_req(Req) ->
+    Req1 = Req#req{content_type   = s_try(fun list_to_binary/1, header('Content-Type', Req))},
+    Req2 = Req1#req{content_length = s_try(fun list_to_integer/1, header('Content-Length', Req))},
+    Req2.
 
+header(Name, Req = #req{headers = Headers}) ->
+    proplists:get_value(Name, Headers).
+
+s_try(Fun, Value) ->
+    case Value of
+      undefined -> undefined;
+      _ -> try Fun(Value) of
+              V -> V
+           catch
+              _ -> ok
+           end
+    end.
