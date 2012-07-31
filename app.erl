@@ -98,14 +98,14 @@ fetch_to_buffer(Socket, Boundary, LengthToConsume, []) ->
     fetch_to_buffer(Socket, Boundary, LengthToConsume, [#form_data{}]);
 
 fetch_to_buffer(Socket, Boundary, LengthToConsume, List = [Item|Buff]) when 0 < LengthToConsume ->
-    ParamEndBoundary   = <<Boundary/binary, "\r\n">>,
+    NewParamBoundary   = <<Boundary/binary, "\r\n">>,
     ContentEndBoundary = <<Boundary/binary, "--\r\n">>,
 
     case gen_tcp:recv(Socket, 0, 100) of
       {ok, Line} ->
          NewBuff =
          case Line of
-           ParamEndBoundary ->
+           NewParamBoundary ->
                [#form_data{} | List];
            ContentEndBoundary ->
                List;
