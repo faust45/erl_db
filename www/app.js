@@ -1,34 +1,57 @@
 window.onload = function() {
-    var xhr = createRequestObject();
-    //xhr.upload.onprogress  = onprogress;
-    xhr.onreadystatechange = onreadystatechange;
+    var dropZone = document.getElementById('drop_zone');
+    dropZone.addEventListener('drop', handleFileSelect, false);
+    dropZone.addEventListener('dragover', handleDragOver, false);
+    dropZone.addEventListener('dragleave', stopEvent, false);
 
-    run();
-
-    function run() {
-        var url = "/"; 
-        var formData = new FormData();
-        formData.append("uploadfile", "data");
-
-        xhr.open("POST", url, true);
-        xhr.send(formData);
+    function handleFileSelect(e) {
+        stopEvent(e); 
+        send(e.dataTransfer.files); 
     }
 
-    function onComplete() {
-        var response;
+    function handleDragOver(e) {
+        stopEvent(e); 
+    }
 
-        if (xhr.status == 201 || xhr.status == 200) {
-            try { 
-               response = eval("(" + xhr.responseText + ")"); 
-            }
-            catch(err) { response = {}; }
+    function stopEvent(e) {
+        e.stopPropagation();
+        e.preventDefault();
+    }
 
-            alert(response);
+    function send(files) {
+        var xhr = createRequestObject();
+        //xhr.upload.onprogress  = onprogress;
+        xhr.onreadystatechange = onreadystatechange;
+
+        run();
+
+        function run() {
+            var url = "/"; 
+            var formData = new FormData();
+            formData.append("uploadfile", "data");
+            formData.append("name", "faust45");
+            formData.append("file", files[0]);
+
+            xhr.open("POST", url, true);
+            xhr.send(formData);
         }
-    }
 
-    function onreadystatechange() {
-        if (xhr.readyState == 4) { onComplete(); }
+        function onComplete() {
+            var response;
+
+            if (xhr.status == 201 || xhr.status == 200) {
+                try { 
+                    response = eval("(" + xhr.responseText + ")"); 
+                }
+                catch(err) { response = {}; }
+
+                alert(response);
+            }
+        }
+
+        function onreadystatechange() {
+            if (xhr.readyState == 4) { onComplete(); }
+        }
     }
 }
 
