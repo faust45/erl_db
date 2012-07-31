@@ -94,10 +94,10 @@ prepare_req(Req) ->
     Req2 = Req1#req{content_length = s_try(fun list_to_integer/1, header('Content-Length', Req))},
     Req2.
 
-fetch_to_buffer(Socket, Boundary, MaxLength, []) ->
-    fetch_to_buffer(Socket, Boundary, MaxLength, [#form_data{}]);
+fetch_to_buffer(Socket, Boundary, LengthToConsume, []) ->
+    fetch_to_buffer(Socket, Boundary, LengthToConsume, [#form_data{}]);
 
-fetch_to_buffer(Socket, Boundary, MaxLength, List = [Item|Buff]) when 0 < MaxLength ->
+fetch_to_buffer(Socket, Boundary, LengthToConsume, List = [Item|Buff]) when 0 < LengthToConsume ->
     ParamEndBoundary   = <<Boundary/binary, "\r\n">>,
     ContentEndBoundary = <<Boundary/binary, "--\r\n">>,
 
@@ -123,7 +123,7 @@ fetch_to_buffer(Socket, Boundary, MaxLength, List = [Item|Buff]) when 0 < MaxLen
                [V | Buff]
            end,
 
-           fetch_to_buffer(Socket, Boundary, MaxLength - byte_size(Line), NewBuff);
+           fetch_to_buffer(Socket, Boundary, LengthToConsume - byte_size(Line), NewBuff);
       {error, timeout} ->
           io:format("Got Timeout ~n", []),
           List
