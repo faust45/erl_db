@@ -94,12 +94,6 @@ prepare_req(Req) ->
     Req2 = Req1#req{content_length = s_try(fun list_to_integer/1, header('Content-Length', Req))},
     Req2.
 
-%do_recv(Socket, Boundary, Length, RecvLength, Data) when RecvLength < Length, Boundary =:= Line ->
-%    case gen_tcp:recv(Socket, 0) of
-%      {ok, Packet} ->
-%      {error, Reason} ->
-%    end;
-
 fetch_to_buffer(Socket, Boundary, MaxLength, []) ->
     fetch_to_buffer(Socket, Boundary, MaxLength, [#form_data{}]);
 
@@ -142,40 +136,6 @@ do_recv(Socket, Boundary, Length, RecvLength, Data) ->
     Buff = fetch_to_buffer(Socket, Boundary, Length, []),
     io:format("Debug in size fetch buff ~p ~n", [length(Buff)]),
     Buff.
-%do_recv(Socket, Boundary, Boundary, Length, RecvLength, Data) when RecvLength < Length ->
-%    io:format("in tcp recv Got Boundary - ~p ~n", [Boundary]);
-%    case gen_tcp:recv(Socket, 0) of
-%      {ok, Line = <<"Content-Disposition: form-data; name=", Name/binary>>} ->
-%          do_recv(Socket, Boundary, Line, Length, RecvLength + byte_size(Line), Data)
-%    end;
-%
-%do_recv(Socket, Boundary, <<"Content-Type: image/jpeg\r\n">>, Length, RecvLength, Data) when RecvLength < Length ->
-%
-%do_recv(Socket, Boundary, <<"\r\n">>, Length, RecvLength, Data) when RecvLength < Length ->
-%
-%do_recv(Socket, Boundary, <<>>, Length, RecvLength, Data) when RecvLength < Length ->
-%    case gen_tcp:recv(Socket, 0) of
-%      {ok, Line} ->
-%          do_recv(Socket, Boundary, Line, Length, RecvLength + byte_size(Packet), Data)
-%    end;
-%
-%% Get Value
-%do_recv(Socket, Boundary, _, Length, RecvLength, Data) when RecvLength < Length ->
-
-%do_recv(Socket, Boundary, Line, Length, RecvLength, Data) when RecvLength < Length ->
-%    io:format("in tcp recv - ~p ~n", [Boundary]),
-%    case gen_tcp:recv(Socket, 0) of
-%      {ok, Packet} when Packet =:= Boundary ->
-%          io:format("Got Boundary tcp recv - ~p ~n", [Boundary]);
-%      {ok, Packet} ->
-%          io:format("Got tcp recv - ~p ~n", [Packet]);
-%          %do_recv(Socket, Boundary, Length, RecvLength + byte_size(Packet), Data);
-%      {error, Reason} ->
-%          io:format("Got error on tcp recv - ~p ~n", [Reason])
-%    end;
-
-%do_recv(_, _, _, _, _, Data) ->
-%    Data.
 
 s_try(Fun, Value) ->
     case Value of
